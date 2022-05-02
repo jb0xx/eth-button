@@ -15,7 +15,7 @@ contract DegenButton {
 
     // bad UX to allow the same user to press button twice in a row
     modifier notLastSeen { 
-        require(msg.sender != lastSeen);
+        require(msg.sender != lastSeen, "already pressed");
         _;
     }
 
