@@ -2,7 +2,7 @@ node_modules
 .env
 coverage
 coverage.json
-package-lock.json
+yarn.lock
 typechain
 
 #Hardhat files

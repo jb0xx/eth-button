@@ -6,6 +6,6 @@ Relevant code can be found in `contracts/DegenButton.sol` and `tests/button-test
 
 To run, clone this repo then run:
 ```shell
-npm install
+yarn install
 npx hardhat test
 ```
