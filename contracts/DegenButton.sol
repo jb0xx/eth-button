@@ -79,8 +79,54 @@ contract DegenButton is Ownable {
         updateParams();
     }
 
+    /*
+     * @dev by the goodness of their heart, a user has decided to act as the
+     * great  benefactor of the current round. Likely this will just be called
+     * by the owner, but by all means you're more than welcome to help enable
+     * this degeneracy.
+     */
     function seedCurrentRound() external payable {
         balances.prizePool += msg.value;
+    }
+
+
+    /*************************
+     * OWNER FUNCTIONS (eventually will be the DAO)
+     *************************/
+
+    /*
+     * @dev updates the seed cut starting next round
+     */
+    function updateSeedCut(uint16 _cut) external onlyOwner {
+        require(_cut + nextParams.houseCut < 100, "seed and house cut cannot exceed 100%");
+        nextParams.seedCut = _cut;
+    }
+
+    /*
+     * @dev updates the house's cut starting next round
+     */
+    function updateHouseCut(uint16 _cut) external onlyOwner {
+        require(_cut + nextParams.seedCut < 100, "seed and house cut cannot exceed 100%");
+        nextParams.houseCut = _cut;
+    }
+
+    /*
+     * @dev sends a portion of the housefunds to the recipient address
+     */
+    function sendFunds(address _recipient, uint amt) payable external onlyOwner {
+        require(balances.houseFund < amt, "insufficient ETH");
+        (bool success, ) = _recipient.call{value: amt}(''); 
+        require(success);
+    }
+
+    /*
+     * @dev sends a portion of the housefunds to the recipient address
+     *   Q: can we just call sendFunds(msg.sender) here?
+     */
+    function withdraw(uint amt) payable external onlyOwner {
+        require(balances.houseFund < amt, "insufficient ETH");
+        (bool success, ) = msg.sender.call{value: amt}('');
+        require(success);
     }
 
 
