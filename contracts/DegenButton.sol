@@ -131,6 +131,39 @@ contract DegenButton is Ownable {
 
 
     /*************************
+     * VIEW FUNCTIONS
+     *   Q: can we aggregate some of these calls?
+     *************************/
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+
+    function getPrizePool() public view returns (uint) {
+        return balances.prizePool;
+    }
+
+    function getSeedFund() public view returns (uint) {
+        return balances.seedFund;
+    }
+
+    function getHouseFund() public view returns (uint) {
+        return balances.houseFund;
+    }
+
+    function getButtonFee() public view returns (uint) {
+        return currParams.fee;
+    }
+
+    function getLastClicked() public view returns (address) {
+        return lastClicked;
+    }
+
+    function getLastBlockNumber() public view returns (uint) {
+        return lastBlockNumber;
+    }
+
+
+    /*************************
      * INTERNAL FUNCTIONS
      *************************/
 
