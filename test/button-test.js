@@ -46,8 +46,8 @@ describe("Button", function() {
         expect(nextParams.seedCut).to.equal(seedCut);
     });
 
-    // check that pressButton increments balances appropriately with subsequent calls
-    it("Check for correct balance accruals with pressButton()", async function () {
+    // check that click() increments balances appropriately with subsequent calls
+    it("Check for correct balance accruals with click()", async function () {
         await logLastBlockNumber();
         let precision = 6;  // number of decimal places (of eth) we desire precision to
         let expBalance = ethers.utils.parseEther('0');
@@ -65,16 +65,16 @@ describe("Button", function() {
 
             if(addr == lastAddr) {          // repeat press case
                 await expect(
-                    button.connect(signer).pressButton(options)
+                    button.connect(signer).click(options)
                 ).to.be.revertedWith('already pressed');
                 repeatFailures++;
             } else if (tempFee.lt(fee)) {   // insufficient fee case
                 await expect(
-                    button.connect(signer).pressButton(options)
+                    button.connect(signer).click(options)
                 ).to.be.revertedWith('Insufficient fee sent');
                 feeFailures++;
             } else {                        // valid call case
-                await button.connect(signer).pressButton(options);
+                await button.connect(signer).click(options);
                 expBalance = expBalance.add(tempFee);
                 lastAddr = addr;
                 passed++;
@@ -105,7 +105,7 @@ describe("Button", function() {
         let balOriginal = await signers[1].getBalance(); // original balance of the winning address
 
         // press button and check for correct vals
-        await button.connect(signers[1]).pressButton({value: fatFee});
+        await button.connect(signers[1]).click({value: fatFee});
         expect(signers[1].address == await button.getLastClicked());                    // check lastClicked has been updated
         expect(balOriginal.sub(fatFee)).to.gt(await signers[1].getBalance());           // check fatFee+gas has left wallet
         expect(await button.getBalance()).to.equal(fatFee);                             // check contract balance
@@ -131,14 +131,17 @@ describe("Button", function() {
         // claim by correct wallet (three blocks mined)
         await button.connect(signers[1]).claimPrize();
         let expHouseFund = fatFee.mul(houseCut).div(100);                           // calculate houseFund
-        let expSeedFund = fatFee.mul(seedCut).div(100);                             // calculate seedFund
-        expect(await button.getPrizePool()).to.equal(0);                            // check prizePool
+        let expPrizePool = fatFee.mul(seedCut).div(100);                            // new prizePool should be old seedFund
+        expect(await button.getPrizePool()).to.equal(expPrizePool);                 // check prizePool
         expect(await button.getHouseFund()).to.equal(expHouseFund);                 // check houseFund
-        expect(await button.getSeedFund()).to.equal(expSeedFund);                   // check seedFund
-        expect(await button.getBalance()).to.equal(expHouseFund.add(expSeedFund));  // remaining balance = seedFund + houseFund
+        expect(await button.getSeedFund()).to.equal(0);                             // check seedFund should be emptied
+        expect(await button.getBalance()).to.equal(expHouseFund.add(expPrizePool)); // remaining balance = prizePool + houseFund
         expect(
             await signers[1].getBalance()
-        ).to.lt(balOriginal.sub(expHouseFund).add(expSeedFund));    // balance of wallet should be original, net gas and seed/house cuts 
+        ).to.lt(balOriginal.sub(await button.getBalance()));    // balance of wallet should be original, net gas and contract balance
+        
+        // ensure winner can press button for next round
+        await button.connect(signers[1]).click({value: fatFee});
         
         // await hre.network.provider.send("evm_mine", []);
     });

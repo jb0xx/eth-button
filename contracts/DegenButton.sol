@@ -58,7 +58,7 @@ contract DegenButton is Ownable {
      * @dev presses the button by sending fee, grants the clicker exclusive
      * rights to claim prize, until they are griefed by the next clicker
      */
-    function pressButton() external payable notLastClicked {
+    function click() external payable notLastClicked {
         require(msg.value >= currParams.fee, "Insufficient fee sent");
         uint128 seedInc = uint128(currParams.seedCut * msg.value / 100);
         uint128 houseInc = uint128(currParams.houseCut * msg.value / 100);
@@ -84,8 +84,8 @@ contract DegenButton is Ownable {
         balances.prizePool = 0;
         (bool success, ) = msg.sender.call{value: prize}('');  // is there a need to gaurd against reentrancy?
         require(success);
-        updateParams();
         emit Claim(msg.sender, prize);
+        reset();
     }
 
     /*
@@ -120,7 +120,7 @@ contract DegenButton is Ownable {
     }
 
     /*
-     * @dev sends a portion of the housefunds to the recipient address
+     * @dev sends a portion of the houseFunds to the recipient address
      */
     function sendFunds(address _recipient, uint amt) payable external onlyOwner {
         require(balances.houseFund < amt, "insufficient ETH");
@@ -185,6 +185,15 @@ contract DegenButton is Ownable {
     /*************************
      * INTERNAL FUNCTIONS
      *************************/
+
+    /*
+     * @dev initiates the next round of degeneracy
+     */
+    function reset() internal {
+        balances.prizePool = balances.seedFund;
+        balances.seedFund = 0;
+        updateParams();
+    }
 
     /*
      * @dev updates the current parameters to reflect the ones queued
