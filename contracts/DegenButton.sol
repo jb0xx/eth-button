@@ -23,7 +23,7 @@ contract DegenButton is Ownable {
     }
 
     address lastClicked;    // initialized to 0x0 address
-    uint lastBlockNumber;   // initial value doesn't matter since only lastClicked can claimTreasure()
+    uint lastBlockNumber;   // initial value doesn't matter since only lastClicked can claimPrize()
     Balances balances;      // self explanatory
     Parameters currParams;  // current value of the game's parameters
     Parameters nextParams;  // parameters values to update to in the next round
@@ -74,13 +74,14 @@ contract DegenButton is Ownable {
      * @dev claims the prize pool, access only granted if the caller is the
      * last clicker and enough blocks have been mined
      */
-    function claimTreasure() external payable onlyLastClicked {
+    function claimPrize() external payable onlyLastClicked {
         require(
             block.number - lastBlockNumber >= currParams.blockDelay,
             "Patience is bitter, but its fruit is sweet"
         );     // block number should be monotonically increasing
         lastClicked = address(0);
         uint prize = balances.prizePool;
+        balances.prizePool = 0;
         (bool success, ) = msg.sender.call{value: prize}('');  // is there a need to gaurd against reentrancy?
         require(success);
         updateParams();
@@ -140,38 +141,43 @@ contract DegenButton is Ownable {
 
     /*************************
      * VIEW FUNCTIONS
-     *   Q: can we aggregate some of these calls?
      *************************/
 
-    function getBalance() public view returns (uint) {
+    function getBalance() external view returns (uint) {
         return address(this).balance;
     }
 
-    function getPrizePool() public view returns (uint) {
+    function getPrizePool() external view returns (uint) {
         return balances.prizePool;
     }
 
-    function getSeedFund() public view returns (uint) {
+    function getSeedFund() external view returns (uint) {
         return balances.seedFund;
     }
 
-    function getHouseFund() public view returns (uint) {
+    function getHouseFund() external view returns (uint) {
         return balances.houseFund;
     }
 
-    function getCurrParams() public view returns (Parameters memory) {
+    function getCurrParams() external view returns (Parameters memory) {
         return currParams;
     }
     
-    function getNextParams() public view returns (Parameters memory) {
+    function getNextParams() external view returns (Parameters memory) {
         return nextParams;
     }
     
-    function getLastClicked() public view returns (address) {
+    /*
+     * @dev last address to have clicked the button
+     */
+    function getLastClicked() external view returns (address) {
         return lastClicked;
     }
 
-    function getLastBlockNumber() public view returns (uint) {
+    /*
+     * @dev Block Number during which the button was clicked last
+     */
+    function getLastBlockNumber() external view returns (uint) {
         return lastBlockNumber;
     }
 
