@@ -4,8 +4,11 @@ This is a basic project to implement r/button functionality on a Solidity contra
 
 Relevant code can be found in `contracts/DegenButton.sol` and `tests/button-test.js`
 
-To run, clone this repo then run:
+If you're testing this on behalf of OneOf:
 ```shell
+git clone git@github.com:jubrilee/eth-button.git
+cd eth-button
+git checkout d73aede
 yarn install
 npx hardhat test
 ```
