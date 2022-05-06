@@ -5,6 +5,10 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DegenButton is Ownable {
+    event Deploy(uint128 _fee, uint64 _blockDelay, uint16 _houseCut, uint16 _seedCut);
+    event Press(address _degen);
+    event Claim(address _winner, uint _prize);
+
     struct Parameters {
         uint128 fee;        // fee per button press (in Gwei)
         uint64 blockDelay;  // number of blocks that must pass before a prize is claimed
@@ -42,6 +46,7 @@ contract DegenButton is Ownable {
         nextParams.houseCut = _houseCut;
         nextParams.seedCut = _seedCut;
         updateParams();
+        emit Deploy(_fee, _blockDelay, _houseCut, _seedCut);
     }
     
     
@@ -54,14 +59,15 @@ contract DegenButton is Ownable {
      * rights to claim prize, until they are griefed by the next clicker
      */
     function pressButton() external payable notLastClicked {
-        require(msg.value > currParams.fee, "Insufficient fee sent");
-        uint128 seedInc = uint128(currParams.seedCut * msg.value);
-        uint128 houseInc = uint128(currParams.houseCut * msg.value);
+        require(msg.value >= currParams.fee, "Insufficient fee sent");
+        uint128 seedInc = uint128(currParams.seedCut * msg.value / 100);
+        uint128 houseInc = uint128(currParams.houseCut * msg.value / 100);
         balances.seedFund += seedInc;
         balances.houseFund += houseInc;
         balances.prizePool += (msg.value - seedInc - houseInc);
         lastBlockNumber = block.number;
         lastClicked = msg.sender;
+        emit Press(msg.sender);
     }
 
     /*
@@ -74,15 +80,17 @@ contract DegenButton is Ownable {
             "Patience is bitter, but its fruit is sweet"
         );     // block number should be monotonically increasing
         lastClicked = address(0);
-        (bool success, ) = msg.sender.call{value: balances.prizePool}('');  // is there a need to gaurd against reentrancy?
+        uint prize = balances.prizePool;
+        (bool success, ) = msg.sender.call{value: prize}('');  // is there a need to gaurd against reentrancy?
         require(success);
         updateParams();
+        emit Claim(msg.sender, prize);
     }
 
     /*
      * @dev by the goodness of their heart, a user has decided to act as the
-     * great  benefactor of the current round. Likely this will just be called
-     * by the owner, but by all means you're more than welcome to help enable
+     * great benefactor of the current round. Likely this will just be called
+     * by the owner, but by all means, you're more than welcome to help enable
      * this degeneracy.
      */
     function seedCurrentRound() external payable {
@@ -134,6 +142,7 @@ contract DegenButton is Ownable {
      * VIEW FUNCTIONS
      *   Q: can we aggregate some of these calls?
      *************************/
+
     function getBalance() public view returns (uint) {
         return address(this).balance;
     }
@@ -150,10 +159,14 @@ contract DegenButton is Ownable {
         return balances.houseFund;
     }
 
-    function getButtonFee() public view returns (uint) {
-        return currParams.fee;
+    function getCurrParams() public view returns (Parameters memory) {
+        return currParams;
     }
-
+    
+    function getNextParams() public view returns (Parameters memory) {
+        return nextParams;
+    }
+    
     function getLastClicked() public view returns (address) {
         return lastClicked;
     }
